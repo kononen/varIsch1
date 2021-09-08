@@ -7,6 +7,46 @@
 namespace linsys
 {
 	template<std::size_t __dim__, class __elem_type__ = double>
+	class vector
+	{
+	public:
+		static const std::size_t dim = __dim__;
+		using elem_type = __elem_type__;
+		
+	private:
+		elem_type *ptr;
+		
+	public:
+		vector() : ptr = new elem_type[dim] {}
+		
+		vector(const vector<dim, elem_type> &other)
+		{
+			std::memcpy(ptr, other.ptr, sizeof(elem_type) * dim);
+		}
+		
+		vector(vector<dim, elem_type> &&other) : ptr = other.ptr
+		{
+			other.ptr = nullptr;
+		}
+		
+		~vector() { delete[] ptr; }
+		
+		elem_type &elem(const std::size_t i)
+		{
+			if (i >= dim)
+				throw std::out_of_range("The index must be a non-negative value less than the dimension.");
+			return ptr[i];
+		}
+		
+		const elem_type &elem(const std::size_t i) const
+		{
+			if (i >= dim)
+				throw std::out_of_range("The index must be a non-negative value less than the dimension.");
+			return ptr[i];
+		}
+	};
+	
+	template<std::size_t __dim__, class __elem_type__ = double>
 	class matrix
 	{
 	public:
@@ -39,40 +79,17 @@ namespace linsys
 				throw std::out_of_range("Indexes must be non-negative values less than the dimension.");
 			return ptr[i * dim + j];
 		}
-	};
-	
-	template<std::size_t __dim__, class __elem_type__ = double>
-	class vector
-	{
-	public:
-		static const std::size_t dim = __dim__;
-		using elem_type = __elem_type__;
 		
-	private:
-		elem_type *ptr;
-		
-	public:
-		vector() : ptr = new elem_type[dim] {}
-		
-		vector(const vector &other)
+		auto operator*(const vector<dim, elem_type> &vect) const
 		{
-			std::memcpy(ptr, other.ptr, sizeof(elem_type) * dim);
-		}
-		
-		~vector() { delete[] ptr; }
-		
-		elem_type &elem(const std::size_t i)
-		{
-			if (i >= dim)
-				throw std::out_of_range("The index must be a non-negative value less than the dimension.");
-			return ptr[i];
-		}
-		
-		const elem_type &elem(const std::size_t i) const
-		{
-			if (i >= dim)
-				throw std::out_of_range("The index must be a non-negative value less than the dimension.");
-			return ptr[i];
+			vector<dim, elem_type> result;
+			for (std::size_t i = 0; i < dim; ++i)
+			{
+				result.elem(i) = elem(i, 0) * vect.elem(0);
+				for (std::size_t j = 1; j < dim; ++j)
+					result.elem(i) += elem(i, j) * vect.elem(j);
+			}
+			return result;
 		}
 	};
 	
