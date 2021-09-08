@@ -1,10 +1,10 @@
 // Предварительный набросок
-#ifndef LINEAR_SYSTEMS
-#define LINEAR_SYSTEMS
+#ifndef LINSYS
+#define LINSYS
 
 #include <cstring>
 
-namespace linear_systems
+namespace linsys
 {
 	template<std::size_t __dim__, class __elem_type__ = double>
 	class matrix
