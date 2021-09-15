@@ -2,12 +2,12 @@
 #include "linsys.h"
 #include "iolin.h"
 
-using vector_t = linsys::vector<3, long double>;
-using matrix_t = linsys::matrix<3, long double>;
+using vector_t = linsys::vector<>;
+using matrix_t = linsys::matrix<>;
 
 int main(int argc, char **argv)
 {
-	vector_t vect;
+	vector_t vect(3);
 	
 	std::cin >> vect; // enter 3 numbers
 	// you can also try to print <vect> without <formatter>...
@@ -19,11 +19,11 @@ int main(int argc, char **argv)
 	vect[1] = 5;
 	vect[2] = 7;
 	
-	for (std::size_t i = 0; i < vector_t::dim; ++i)
+	for (std::size_t i = 0; i < vect.dim; ++i)
 		std::cout << vect[i] << " ";
 	std::cout << "\n\n";//*/
 	
-	matrix_t matr;
+	matrix_t matr(3);
 	
 	std::cin >> matr; // enter 9 numbers
 	// you can also try to print <matr> without <formatter>...
@@ -35,9 +35,9 @@ int main(int argc, char **argv)
 	matr[1][0] = 6; matr[1][1] = 4; matr[1][2] = 5;
 	matr[2][0] = 1; matr[2][1] = 8; matr[2][2] = 3;
 	
-	for (std::size_t i = 0; i < matrix_t::dim; ++i)
+	for (std::size_t i = 0; i < matr.dim; ++i)
 	{
-		for (std::size_t j = 0; j < matrix_t::dim; ++j)
+		for (std::size_t j = 0; j < matr.dim; ++j)
 			std::cout << matr[i][j] << " ";
 		std::cout << "\n";
 	}
@@ -48,7 +48,7 @@ int main(int argc, char **argv)
 	std::cout << "prod := matr * vect\nprod -> vector\n"
 	          << make_formatter(prod, std::ios::fixed | std::ios::right, 8, 3) << "end\n";
 	
-	/*for (std::size_t i = 0; i < vector_t::dim; ++i)
+	/*for (std::size_t i = 0; i < prod.dim; ++i)
 		std::cout << prod[i] << " ";
 	std::cout << "\n\n";//*/
 	
@@ -61,13 +61,36 @@ int main(int argc, char **argv)
 	std::cout << "||vect||_sph -> " << vect.sph_norm() << "\n";
 	std::cout << "||vect||_cub -> " << vect.cub_norm() << "\n";
 	
-	matrix_t a; vector_t b;
+	std::size_t d;
+	std::cin >> d;
+	matrix_t a(d); vector_t b(d);
 	
 	std::cin >> make_augmented(a, b); // enter 12 numbers
 	std::cout << "a := coeff(input)\na -> matrix\n"
 	          << make_formatter(a, std::ios::fixed | std::ios::right, 8, 3) << "end\n";
 	std::cout << "b := right(input)\nb -> vector\n"
 	          << make_formatter(b, std::ios::fixed | std::ios::right, 8, 3) << "end\n";
+	
+	std::list<std::pair<matrix_t, vector_t>> li;
+	try
+	{
+		vector_t x = Gaussian_method(a, b, li);
+
+		std::cout << "x := Gaussian_method(a, b)\nx -> vector\n"
+		          << make_formatter(x, std::ios::fixed | std::ios::right, 8, 3) << "end\n";
+
+		std::cout << "dist_e(a * x, b) -> " << Euclidean_distance(a.prod(x), b) << "\n";
+	}
+	catch (std::invalid_argument exc)
+	{
+		std::cout << "[EXCEPTION] " << exc.what() << "\n";
+	}
+	
+	for (auto e : li)
+	{
+		std::cout << "\nmatrix\n" << make_formatter(e.first, std::ios::fixed | std::ios::right, 8, 3) << "end\n";
+		std::cout << "vector\n" << make_formatter(e.second, std::ios::fixed | std::ios::right, 8, 3) << "end\n";
+	}
 	
 	return 0;
 }

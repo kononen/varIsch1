@@ -4,42 +4,43 @@
 #include "linsys.h"
 #include <iostream>
 #include <iomanip>
+#include <stdexcept>
 
-template<std::size_t dim, class elem_type>
-std::istream &operator>>(std::istream &in, linsys::vector<dim, elem_type> &v)
+template<class T>
+std::istream &operator>>(std::istream &in, linsys::vector<T> &v)
 {
-	for (std::size_t i = 0; i < dim; ++i)
+	for (std::size_t i = 0; i < v.dim; ++i)
 		in >> v[i];
 	return in;
 }
 
-template<std::size_t dim, class elem_type>
-std::ostream &operator<<(std::ostream &out, const linsys::vector<dim, elem_type> &v)
+template<class T>
+std::ostream &operator<<(std::ostream &out, const linsys::vector<T> &v)
 {
-	for (std::size_t i = 0; i < dim; ++i)
+	for (std::size_t i = 0; i < v.dim; ++i)
 		out << v[i] << std::endl;
 	return out;
 }
 
-template<std::size_t dim, class elem_type>
-std::istream &operator>>(std::istream &in, linsys::matrix<dim, elem_type> &v)
+template<class T>
+std::istream &operator>>(std::istream &in, linsys::matrix<T> &m)
 {
-	for (std::size_t i = 0; i < dim; ++i)
+	for (std::size_t i = 0; i < m.dim; ++i)
 	{
-		auto line = v[i];
-		for (std::size_t j = 0; j < dim; ++j)
+		auto line = m[i];
+		for (std::size_t j = 0; j < m.dim; ++j)
 			in >> line[j];
 	}
 	return in;
 }
 
-template<std::size_t dim, class elem_type>
-std::ostream &operator<<(std::ostream &out, const linsys::matrix<dim, elem_type> &v)
+template<class T>
+std::ostream &operator<<(std::ostream &out, const linsys::matrix<T> &m)
 {
-	for (std::size_t i = 0; i < dim; ++i)
+	for (std::size_t i = 0; i < m.dim; ++i)
 	{
-		auto line = v[i];
-		for (std::size_t j = 0; j < dim; ++j)
+		auto line = m[i];
+		for (std::size_t j = 0; j < m.dim; ++j)
 			out << line[j] << " ";
 		out << std::endl;
 	}
@@ -59,15 +60,16 @@ formatter<T> make_formatter(const T &data, std::ios::fmtflags fl, std::streamsiz
 	return { data, fl, w, p };
 }
 
-template<std::size_t dim, class elem_type>
-std::ostream &operator<<(std::ostream &out, const formatter<linsys::vector<dim, elem_type>> &form)
+template<class T>
+std::ostream &operator<<(std::ostream &out, const formatter<linsys::vector<T>> &form)
 {
 	auto oldf = out.flags();
 	auto oldp = out.precision();
 	out.flags(form.fl);
 	out.precision(form.p);
 	
-	for (std::size_t i = 0; i < dim; ++i)
+	const auto d = form.data.dim;
+	for (std::size_t i = 0; i < d; ++i)
 		out << std::setw(form.w) << form.data[i] << std::endl;
 	
 	out.flags(oldf);
@@ -76,18 +78,19 @@ std::ostream &operator<<(std::ostream &out, const formatter<linsys::vector<dim, 
 	return out;
 }
 
-template<std::size_t dim, class elem_type>
-std::ostream &operator<<(std::ostream &out, const formatter<linsys::matrix<dim, elem_type>> &form)
+template<class T>
+std::ostream &operator<<(std::ostream &out, const formatter<linsys::matrix<T>> &form)
 {
 	auto oldf = out.flags();
 	auto oldp = out.precision();
 	out.flags(form.fl);
 	out.precision(form.p);
 	
-	for (std::size_t i = 0; i < dim; ++i)
+	const auto d = form.data.dim;
+	for (std::size_t i = 0; i < d; ++i)
 	{
 		auto line = form.data[i];
-		for (std::size_t j = 0; j < dim; ++j)
+		for (std::size_t j = 0; j < d; ++j)
 			out << std::setw(form.w) << line[j];
 		out << std::endl;
 	}
@@ -98,28 +101,31 @@ std::ostream &operator<<(std::ostream &out, const formatter<linsys::matrix<dim, 
 	return out;
 }
 
-template<std::size_t dim, class elem_type>
+template<class T>
 struct augmented
 {
-	linsys::matrix<dim, elem_type> &matr;
-	linsys::vector<dim, elem_type> &vect;
+	linsys::matrix<T> &matr;
+	linsys::vector<T> &vect;
+	augmented(linsys::matrix<T> &m, linsys::vector<T> &v) : matr(m), vect(v)
+	{
+		if (m.dim != v.dim) throw std::invalid_argument("Mismatch of dimentions.");
+	}
 };
 
-template<std::size_t dim, class elem_type>
-augmented<dim, elem_type> make_augmented(
-	linsys::matrix<dim, elem_type> &matr,
-	linsys::vector<dim, elem_type> &vect
-) {
-	return { matr, vect };
+template<class T>
+auto make_augmented(linsys::matrix<T> &m, linsys::vector<T> &v)
+{
+	return augmented<T>(m, v);
 }
 
-template<std::size_t dim, class elem_type>
-std::istream &operator>>(std::istream &in, const augmented<dim, elem_type> &augm)
+template<class T>
+std::istream &operator>>(std::istream &in, const augmented<T> &augm)
 {
-	for (std::size_t i = 0; i < dim; ++i)
+	const auto d = augm.matr.dim;
+	for (std::size_t i = 0; i < d; ++i)
 	{
 		auto line = augm.matr[i];
-		for (std::size_t j = 0; j < dim; ++j)
+		for (std::size_t j = 0; j < d; ++j)
 			in >> line[j];
 		in >> augm.vect[i];
 	}
