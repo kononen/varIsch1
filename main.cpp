@@ -71,25 +71,18 @@ int main(int argc, char **argv)
 	std::cout << "b := right(input)\nb -> vector\n"
 	          << make_formatter(b, std::ios::fixed | std::ios::right, 8, 3) << "end\n";
 	
-	std::list<std::pair<matrix_t, vector_t>> li;
 	try
 	{
-		vector_t x = Gaussian_method(a, b, li);
-
+		vector_t x = Gaussian_method(a, b);
+		
 		std::cout << "x := Gaussian_method(a, b)\nx -> vector\n"
 		          << make_formatter(x, std::ios::fixed | std::ios::right, 8, 3) << "end\n";
-
+		
 		std::cout << "dist_e(a * x, b) -> " << Euclidean_distance(a.prod(x), b) << "\n";
 	}
 	catch (std::invalid_argument exc)
 	{
 		std::cout << "[EXCEPTION] " << exc.what() << "\n";
-	}
-	
-	for (auto e : li)
-	{
-		std::cout << "\nmatrix\n" << make_formatter(e.first, std::ios::fixed | std::ios::right, 8, 3) << "end\n";
-		std::cout << "vector\n" << make_formatter(e.second, std::ios::fixed | std::ios::right, 8, 3) << "end\n";
 	}
 	
 	return 0;
