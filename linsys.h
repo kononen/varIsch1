@@ -5,8 +5,6 @@
 #include <stdexcept>
 #include <cmath>
 #include <limits>
-#include <list>
-#include <utility>
 
 namespace linsys
 {
@@ -182,7 +180,7 @@ namespace linsys
 	};
 	
 	template<class T>
-	auto Gaussian_method(matrix<T> matr, vector<T> vect, std::list<std::pair<matrix<T>, vector<T>>> &li)
+	auto Gaussian_method(matrix<T> matr, vector<T> vect)
 	{
 		auto dim = matr.dim;
 		if (dim != vect.dim) throw std::invalid_argument("Mismatch of dimentions.");
@@ -210,7 +208,6 @@ namespace linsys
 				for (std::size_t k = i + 1; k < dim; ++k)
 					cur_row[k] -= quot * top_row[k];
 				vect[j] -= quot * vect[i];
-				li.emplace_back(matr, vect);
 			}
 		}
 		
