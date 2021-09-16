@@ -65,7 +65,7 @@ int main(int argc, char **argv)
 	std::cin >> d;
 	matrix_t a(d); vector_t b(d);
 	
-	std::cin >> make_augmented(a, b); // enter 12 numbers
+	std::cin >> make_augmented(a, b); // enter d * (d + 1) numbers
 	std::cout << "a := coeff(input)\na -> matrix\n"
 	          << make_formatter(a, std::ios::fixed | std::ios::right, 8, 3) << "end\n";
 	std::cout << "b := right(input)\nb -> vector\n"
