@@ -278,13 +278,14 @@ namespace linsys
 			return result;
 		}
 	};
-
+	
 	template<class T>
 	bool iszero(const T &arg)
 	{
 		return std::abs(arg) <= std::numeric_limits<T>::epsilon();
 	}
-
+	
+	template<>
 	bool iszero(const double arg)
 	{
 		return std::abs(arg) <= 2e-15;
