@@ -5,23 +5,23 @@
 #include <stdexcept>
 #include <cmath>
 #include <limits>
+#include <utility>
 
 namespace linsys
 {
 	template<class T = double>
 	class vector
-	{
-	public:
-		const std::size_t dim;
-		using elem_type = T;
-		
+	{	
 	private:
 		T *ptr;
 		
 	public:
+		const std::size_t dim;
+		using elem_type = T;
+		
 		vector(const std::size_t d) : dim(d), ptr(new T[d]) {}
 		
-		vector(const vector<T> &other) : dim(other.dim), ptr(new T[dim])
+		vector(const vector<T> &other) : dim(other.dim), ptr(new T[other.dim])
 		{
 			std::memcpy(ptr, other.ptr, sizeof(T) * dim);
 		}
@@ -29,6 +29,20 @@ namespace linsys
 		vector(vector<T> &&other) : dim(other.dim), ptr(other.ptr)
 		{
 			other.ptr = nullptr;
+		}
+		
+		vector<T> &operator=(const vector<T> &other)
+		{
+			if (dim != other.dim) throw std::invalid_argument("Mismatch of dimentions.");
+			std::memcpy(ptr, other.ptr, sizeof(T) * dim);
+			return *this;
+		}
+		
+		vector<T> &operator=(vector<T> &&other)
+		{
+			if (dim != other.dim) throw std::invalid_argument("Mismatch of dimentions.");
+			std::swap(ptr, other.ptr);
+			return *this;
 		}
 		
 		~vector() { delete[] ptr; }
@@ -90,6 +104,15 @@ namespace linsys
 			}
 			return result;
 		}
+		
+		template<class distribution, class generator>
+		static auto random(const std::size_t d, distribution &dis, generator &gen)
+		{
+			vector<T> result(d);
+			for (std::size_t i = 0; i < d; ++i)
+				result[i] = dis(gen);
+			return result;
+		}
 	};
 	
 	template<class T>
@@ -108,18 +131,17 @@ namespace linsys
 	
 	template<class T = double>
 	class matrix
-	{
-	public:
-		const std::size_t dim;
-		using elem_type = T;
-		
+	{	
 	private:
 		T *ptr;
 		
 	public:
+		const std::size_t dim;
+		using elem_type = T;
+		
 		matrix(const std::size_t d) : dim(d), ptr(new T[d * d]) {}
 		
-		matrix(const matrix<T> &other) : dim(other.dim), ptr(new T[dim * dim])
+		matrix(const matrix<T> &other) : dim(other.dim), ptr(new T[other.dim * other.dim])
 		{
 			std::memcpy(ptr, other.ptr, sizeof(T) * dim * dim);
 		}
@@ -127,6 +149,20 @@ namespace linsys
 		matrix(matrix<T> &&other) : dim(other.dim), ptr(other.ptr)
 		{
 			other.ptr = nullptr;
+		}
+		
+		matrix<T> &operator=(const matrix<T> &other)
+		{
+			if (dim != other.dim) throw std::invalid_argument("Mismatch of dimentions.");
+			std::memcpy(ptr, other.ptr, sizeof(T) * dim * dim);
+			return *this;
+		}
+		
+		matrix<T> &operator=(matrix<T> &&other)
+		{
+			if (dim != other.dim) throw std::invalid_argument("Mismatch of dimentions.");
+			std::swap(ptr, other.ptr);
+			return *this;
 		}
 		
 		~matrix() { delete[] ptr; }
@@ -149,19 +185,6 @@ namespace linsys
 			return ptr[i * dim + j];
 		}
 		
-		auto prod(const vector<T> &vect) const
-		{
-			if (dim != vect.dim) throw std::invalid_argument("Mismatch of dimentions.");
-			vector<T> result(dim);
-			for (std::size_t i = 0; i < dim; ++i)
-			{
-				result[i] = operator[](i)[0] * vect[0];
-				for (std::size_t j = 1; j < dim; ++j)
-					result[i] += operator[](i)[j] * vect[j];
-			}
-			return result;
-		}
-		
 		void swap_rows_in_self(const std::size_t i, const std::size_t j)
 		{
 			if (i >= dim || j >= dim)
@@ -177,12 +200,100 @@ namespace linsys
 			
 			delete[] pt;
 		}
+		
+		auto prod(const vector<T> &vect) const
+		{
+			if (dim != vect.dim) throw std::invalid_argument("Mismatch of dimentions.");
+			vector<T> result(dim);
+			for (std::size_t i = 0; i < dim; ++i)
+			{
+				result[i] = operator[](i)[0] * vect[0];
+				for (std::size_t j = 1; j < dim; ++j)
+					result[i] += operator[](i)[j] * vect[j];
+			}
+			return result;
+		}
+		
+		auto transpose() const
+		{
+			matrix<T> result(dim);
+			for (std::size_t i = 0; i < dim; ++i)
+			{
+				auto row = operator[](i);
+				for (std::size_t j = 0; j < dim; ++j)
+					result[j][i] = row[j];
+			}
+			return result;
+		}
+		
+		/*auto spec_prod(const matrix<T> &other) const
+		{
+			if (dim != other.dim) throw std::invalid_argument("Mismatch of dimentions.");
+			matrix<T> result(dim);
+			for (std::size_t i = 0; i < dim; ++i)
+			{
+				auto a = operator[](i);
+				auto r = result[i];
+				for (std::size_t j = 0; j < dim; ++j)
+				{
+					auto b = other[j];
+					auto e = r + j;
+					*e = a[0] * b[0];
+					for (std::size_t k = 1; k < dim; ++k)
+						*e += a[k] * b[k];
+				}
+			}
+			return result;
+		}
+		
+		auto operator*(const matrix<T> &other) const
+		{
+			return spec_prod(other.transpose());
+		}//*/
+		
+		matrix<T> &fill_identity()
+		{
+			for (std::size_t i = 0; i < dim; ++i)
+			{
+				auto row = operator[](i);
+				for (std::size_t j = 0; j < i; ++j) row[j] = 0;
+				row[i] = 1;
+				for (std::size_t j = i + 1; j < dim; ++j) row[j] = 0;
+			}
+			return *this;
+		}
+		
+		static auto identity(const std::size_t d)
+		{
+			matrix<T> result(d);
+			return result.fill_identity();
+		}
+		
+		template<class distribution, class generator>
+		static auto random(const std::size_t d, distribution &dis, generator &gen)
+		{
+			matrix<T> result(d);
+			for (std::size_t i = 0; i < d * d; ++i)
+				result.ptr[i] = dis(gen);
+			return result;
+		}
 	};
+
+	template<class T>
+	bool iszero(const T &arg)
+	{
+		return std::abs(arg) <= std::numeric_limits<T>::epsilon();
+	}
+
+	bool iszero(const double arg)
+	{
+		return std::abs(arg) <= 2e-15;
+	}
 	
 	template<class T>
 	auto Gaussian_method(matrix<T> matr, vector<T> vect)
 	{
-		auto dim = matr.dim;
+		const auto dim = matr.dim;
 		if (dim != vect.dim) throw std::invalid_argument("Mismatch of dimentions.");
 		
 		for (std::size_t i = 0; i < dim; ++i)
@@ -191,7 +302,7 @@ namespace linsys
 			for (std::size_t j = i + 1; j < dim; ++j)
 				if (std::abs(matr[i_max][i]) < std::abs(matr[j][i]))
 					i_max = j;
-			if (std::abs(matr[i_max][i]) < std::numeric_limits<T>::epsilon())
+			if (iszero(matr[i_max][i]))
 				throw std::invalid_argument("The matrix of coefficients is singular.");
 			
 			if (i != i_max)
@@ -204,7 +315,7 @@ namespace linsys
 			for (std::size_t j = i + 1; j < dim; ++j)
 			{
 				auto cur_row = matr[j];
-				auto quot = cur_row[i] / top_row[i];
+				const auto quot = cur_row[i] / top_row[i];
 				for (std::size_t k = i + 1; k < dim; ++k)
 					cur_row[k] -= quot * top_row[k];
 				vect[j] -= quot * vect[i];
@@ -217,7 +328,7 @@ namespace linsys
 		{
 			auto row = matr[i];
 			auto s = row[i + 1] * result[i + 1];
-			for (auto j = i + 2; j < dim; ++j)
+			for (std::size_t j = i + 2; j < dim; ++j)
 				s += row[j] * result[j];
 			result[i] = (vect[i] - s) / row[i];
 		}
@@ -225,9 +336,77 @@ namespace linsys
 	}
 	
 	template<class T>
-	auto QRdecompos_method(matrix<T> matr, vector<T> vect)
+	std::pair<matrix<T>, matrix<T>> QR_decomposition(matrix<T> matr)
 	{
+		const auto dim = matr.dim;
+		auto orth = matrix<T>::identity(dim);
 		
+		for (std::size_t i = 0; i < dim - 1; ++i)
+		{
+			auto mtop = matr[i], qtop = orth[i];
+			for (std::size_t j = i + 1; j < dim; ++j)
+			{
+				auto mcur = matr[j], qcur = orth[j];
+				if (!iszero(mcur[i]))
+				{
+					const T a = mtop[i], b = mcur[i];
+					const T h = std::hypot(a, b);
+					const T c = a / h, s = b / h;
+					
+					mtop[i] = c * mtop[i] + s * mcur[i];
+					for (std::size_t k = i + 1; k < dim; ++k)
+					{
+						const T buffer = c * mtop[k] + s * mcur[k];
+						mcur[k] = -s * mtop[k] + c * mcur[k];
+						mtop[k] = buffer;
+					}
+					
+					for (std::size_t k = 0; k < dim; ++k)
+					{
+						const T buffer = c * qtop[k] + s * qcur[k];
+						qcur[k] = -s * qtop[k] + c * qcur[k];
+						qtop[k] = buffer;
+					}
+				}
+			}
+			if (iszero(mtop[i]))
+				throw std::invalid_argument("The matrix cannot be decomposed because it is singular.");
+		}
+		if (iszero(matr[dim - 1][dim - 1]))
+			throw std::invalid_argument("The matrix cannot be decomposed because it is singular.");
+		
+		return { orth.transpose(), matr };
+	}
+	
+	template<class T>
+	struct QR_decomposition_method_result_t
+	{
+		matrix<T> Q, R;
+		vector<T> X;
+	};
+	
+	template<class T>
+	QR_decomposition_method_result_t<T> QR_decomposition_method(matrix<T> matr, vector<T> vect)
+	{
+		const auto dim = matr.dim;
+		if (dim != vect.dim) throw std::invalid_argument("Mismatch of dimentions.");
+		
+		const auto qr = QR_decomposition(matr);
+		
+		vect = qr.first.transpose().prod(vect);
+		
+		vector<T> solution(dim);
+		solution[dim - 1] = vect[dim - 1] / qr.second[dim - 1][dim - 1];
+		for (std::size_t i = dim - 2; i < i + 1; --i)
+		{
+			auto row = qr.second[i];
+			auto s = row[i + 1] * solution[i + 1];
+			for (std::size_t j = i + 2; j < dim; ++j)
+				s += row[j] * solution[j];
+			solution[i] = (vect[i] - s) / row[i];
+		}
+		
+		return { qr.first, qr.second, solution };
 	}
 }
 

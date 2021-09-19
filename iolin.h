@@ -47,18 +47,22 @@ std::ostream &operator<<(std::ostream &out, const linsys::matrix<T> &m)
 	return out;
 }
 
+enum matrix_marker { FULL, UPPER_TRIANGULAR };
+
 template<class T> struct formatter
 {
 	const T &data;
 	std::ios::fmtflags fl;
 	std::streamsize w, p;
+	matrix_marker m;
+	formatter(
+		const T &new_data,
+		std::ios::fmtflags new_fl,
+		std::streamsize new_w,
+		std::streamsize new_p,
+		matrix_marker new_m = FULL
+	) : data(new_data), fl(new_fl), w(new_w), p(new_p), m(new_m) {}
 };
-
-template<class T>
-formatter<T> make_formatter(const T &data, std::ios::fmtflags fl, std::streamsize w, std::streamsize p)
-{
-	return { data, fl, w, p };
-}
 
 template<class T>
 std::ostream &operator<<(std::ostream &out, const formatter<linsys::vector<T>> &form)
@@ -90,8 +94,20 @@ std::ostream &operator<<(std::ostream &out, const formatter<linsys::matrix<T>> &
 	for (std::size_t i = 0; i < d; ++i)
 	{
 		auto line = form.data[i];
-		for (std::size_t j = 0; j < d; ++j)
-			out << std::setw(form.w) << line[j];
+		switch (form.m)
+		{
+		case FULL:
+			for (std::size_t j = 0; j < d; ++j)
+				out << std::setw(form.w) << line[j];
+			break;
+			
+		case UPPER_TRIANGULAR:
+			for (std::size_t j = 0; j < i; ++j)
+				out << std::setw(form.w) << (T)0;
+			for (std::size_t j = i; j < d; ++j)
+				out << std::setw(form.w) << line[j];
+			break;
+		}
 		out << std::endl;
 	}
 	
@@ -111,12 +127,6 @@ struct augmented
 		if (m.dim != v.dim) throw std::invalid_argument("Mismatch of dimentions.");
 	}
 };
-
-template<class T>
-auto make_augmented(linsys::matrix<T> &m, linsys::vector<T> &v)
-{
-	return augmented<T>(m, v);
-}
 
 template<class T>
 std::istream &operator>>(std::istream &in, const augmented<T> &augm)
