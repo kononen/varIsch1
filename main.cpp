@@ -33,6 +33,7 @@ int main(int argc, char **argv)
 	bool incorrect_symbol;
 	do
 	{
+		incorrect_symbol = false;
 		char c;
 		std::cout << "Enter <R|r> to generate a random linear system.\n";
 		std::cout << "Enter <I|i> to read the matrix of coefficients and the vector from individual files.\n";
@@ -64,27 +65,27 @@ int main(int argc, char **argv)
 				b64 = vector64::random(dim, dis, gen);
 			}
 			
-			std::cout << "Enter <I|i> to save the matrix of coefficients and the vector to individual files.\n";
+			std::cout << "Enter <I|i> to save the matrix of coefficients and the vector in individual files.\n";
 			std::cout << "Enter <A|a> to save the augmented matrix in a single file.\n";
+			std::cin.get();
 			std::cin.get(c);
 			std::cin.get();
 			
 			bool incorrect_symbol_inner;
 			do
 			{
+				incorrect_symbol_inner = false;
 				switch (c)
 				{
 				case 'I':
 				case 'i':
 					std::cout << "Save the matrix of coefficients in a file: ";
-					std::cin.get();
 					std::getline(std::cin, address);
 					save.open(address);
 					save << dim << "\n" << formatter(A64, std::ios::fixed | std::ios::right, 12, 6);
 					save.close();
 					
 					std::cout << "Save the vector in a file: ";
-					std::cin.get();
 					std::getline(std::cin, address);
 					save.open(address);
 					save << dim << "\n" << formatter(b64, std::ios::fixed | std::ios::right, 12, 6);
@@ -94,7 +95,6 @@ int main(int argc, char **argv)
 				case 'A':
 				case 'a':
 					std::cout << "Save the augmented matrix in a file: ";
-					std::cin.get();
 					std::getline(std::cin, address);
 					save.open(address);
 					save << dim << "\n" << formatter(augmented(A64, b64), std::ios::fixed | std::ios::right, 12, 6);
@@ -104,8 +104,8 @@ int main(int argc, char **argv)
 				default:
 					std::cout << "Incorrect symbol \'" << c << "\'. Please try again.\n";
 					incorrect_symbol_inner = true;
+					break;
 				}
-				incorrect_symbol_inner = false;
 			}
 			while (incorrect_symbol_inner);
 			break;
@@ -115,7 +115,6 @@ int main(int argc, char **argv)
 			do
 			{
 				std::cout << "Read the matrix of coefficients from a file: ";
-				//std::cin.get();
 				std::getline(std::cin, address);
 				fin.open(address);
 				if (!fin.is_open())
@@ -130,7 +129,6 @@ int main(int argc, char **argv)
 			do
 			{
 				std::cout << "Read the vector from a file: ";
-				//std::cin.get();
 				std::getline(std::cin, address);
 				fin.open(address);
 				if (!fin.is_open())
@@ -148,7 +146,6 @@ int main(int argc, char **argv)
 			do
 			{
 				std::cout << "Read the augmented matrix from a file: ";
-				std::cin.get();
 				std::getline(std::cin, address);
 				fin.open(address);
 				if (!fin.is_open())
@@ -165,7 +162,6 @@ int main(int argc, char **argv)
 			std::cout << "Incorrect symbol \'" << c << "\'. Please try again.\n";
 			incorrect_symbol = true;
 		}
-		incorrect_symbol = false;
 	}
 	while (incorrect_symbol);
 	
@@ -189,7 +185,6 @@ int main(int argc, char **argv)
 		          << Euclidean_distance(((matrix64)A32).prod((vector64)x), (vector64)b32) << "\n\n";
 		
 		std::cout << "Save the solution in a file: ";
-		//std::cin.get();
 		std::getline(std::cin, address);
 		save.open(address);
 		save << x.dim << "\n" << formatter(x, std::ios::fixed | std::ios::right, 12, 6);
@@ -216,7 +211,6 @@ int main(int argc, char **argv)
 		std::cout << "Residual: " << Euclidean_distance(A64.prod(x), b64) << "\n\n";
 		
 		std::cout << "Save the solution in a file: ";
-		//std::cin.get();
 		std::getline(std::cin, address);
 		save.open(address);
 		save << x.dim << "\n" << formatter(x, std::ios::fixed | std::ios::right, 12, 6);
@@ -248,21 +242,18 @@ int main(int argc, char **argv)
 		          << formatter(qrx.R, std::ios::fixed | std::ios::right, 12, 6, UPPER_TRIANGULAR) << "end\n\n";
 		
 		std::cout << "Save matrix Q in a file: ";
-		//std::cin.get();
 		std::getline(std::cin, address);
 		save.open(address);
 		save << qrx.Q.dim << "\n" << formatter(qrx.Q, std::ios::fixed | std::ios::right, 12, 6);
 		save.close();
 		
 		std::cout << "Save matrix R in a file: ";
-		//std::cin.get();
 		std::getline(std::cin, address);
 		save.open(address);
 		save << qrx.R.dim << "\n" << formatter(qrx.R, std::ios::fixed | std::ios::right, 12, 6, UPPER_TRIANGULAR);
 		save.close();
 		
 		std::cout << "Save the solution in a file: ";
-		//std::cin.get();
 		std::getline(std::cin, address);
 		save.open(address);
 		save << qrx.X.dim << "\n" << formatter(qrx.X, std::ios::fixed | std::ios::right, 12, 6);
@@ -293,21 +284,18 @@ int main(int argc, char **argv)
 		          << formatter(qrx.R, std::ios::fixed | std::ios::right, 12, 6, UPPER_TRIANGULAR) << "end\n\n";
 		
 		std::cout << "Save matrix Q in a file: ";
-		//std::cin.get();
 		std::getline(std::cin, address);
 		save.open(address);
 		save << qrx.Q.dim << "\n" << formatter(qrx.Q, std::ios::fixed | std::ios::right, 12, 6);
 		save.close();
 		
 		std::cout << "Save matrix R in a file: ";
-		//std::cin.get();
 		std::getline(std::cin, address);
 		save.open(address);
 		save << qrx.R.dim << "\n" << formatter(qrx.R, std::ios::fixed | std::ios::right, 12, 6, UPPER_TRIANGULAR);
 		save.close();
 		
 		std::cout << "Save the solution in a file: ";
-		//std::cin.get();
 		std::getline(std::cin, address);
 		save.open(address);
 		save << qrx.X.dim << "\n" << formatter(qrx.X, std::ios::fixed | std::ios::right, 12, 6);
