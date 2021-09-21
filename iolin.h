@@ -120,16 +120,76 @@ std::ostream &operator<<(std::ostream &out, const formatter<linsys::matrix<T>> &
 template<class T>
 struct augmented
 {
-	linsys::matrix<T> &matr;
-	linsys::vector<T> &vect;
-	augmented(linsys::matrix<T> &m, linsys::vector<T> &v) : matr(m), vect(v)
+	const linsys::matrix<T> &matr;
+	const linsys::vector<T> &vect;
+	augmented(const linsys::matrix<T> &m, const linsys::vector<T> &v) : matr(m), vect(v)
 	{
-		if (m.dim != v.dim) throw std::invalid_argument("Mismatch of dimentions.");
+		if (m.dim != v.dim) throw std::invalid_argument("Mismatch of dimensions.");
 	}
 };
 
 template<class T>
-std::istream &operator>>(std::istream &in, const augmented<T> &augm)
+std::ostream &operator<<(std::ostream &out, const augmented<T> &augm)
+{
+	const auto d = augm.matr.dim;
+	for (std::size_t i = 0; i < d; ++i)
+	{
+		auto line = augm.matr[i];
+		for (std::size_t j = 0; j < d; ++j)
+			out << line[j] << " ";
+		out << augm.vect[i] << std::endl;
+	}
+	return out;
+}
+
+template<class T>
+std::ostream &operator<<(std::ostream &out, const formatter<augmented<T>> &form)
+{
+	auto oldf = out.flags();
+	auto oldp = out.precision();
+	out.flags(form.fl);
+	out.precision(form.p);
+	
+	const auto d = form.data.matr.dim;
+	for (std::size_t i = 0; i < d; ++i)
+	{
+		auto line = form.data.matr[i];
+		switch (form.m)
+		{
+		case FULL:
+			for (std::size_t j = 0; j < d; ++j)
+				out << std::setw(form.w) << line[j];
+			break;
+			
+		case UPPER_TRIANGULAR:
+			for (std::size_t j = 0; j < i; ++j)
+				out << std::setw(form.w) << (T)0;
+			for (std::size_t j = i; j < d; ++j)
+				out << std::setw(form.w) << line[j];
+			break;
+		}
+		out << std::setw(form.w) << form.data.vect[i] << std::endl;
+	}
+	
+	out.flags(oldf);
+	out.precision(oldp);
+	
+	return out;
+}
+
+template<class T>
+struct augmented_mut
+{
+	linsys::matrix<T> &matr;
+	linsys::vector<T> &vect;
+	augmented_mut(linsys::matrix<T> &m, linsys::vector<T> &v) : matr(m), vect(v)
+	{
+		if (m.dim != v.dim) throw std::invalid_argument("Mismatch of dimensions.");
+	}
+};
+
+template<class T>
+std::istream &operator>>(std::istream &in, augmented_mut<T> &&augm)
 {
 	const auto d = augm.matr.dim;
 	for (std::size_t i = 0; i < d; ++i)

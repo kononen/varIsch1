@@ -11,7 +11,7 @@ int main(int argc, char **argv)
 	std::cin >> d;
 	matrix_t a(d); vector_t b(d);
 	
-	std::cin >> augmented(a, b); // enter d * (d + 1) numbers
+	std::cin >> augmented_mut(a, b); // enter d * (d + 1) numbers
 	
 	std::cout << "a := coeff(input)\na -> matrix\n"
 	          << formatter(a, std::ios::fixed | std::ios::right, 12, 6) << "end\n";

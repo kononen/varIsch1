@@ -16,14 +16,23 @@ namespace linsys
 		T *ptr;
 		
 	public:
-		const std::size_t dim;
+		std::size_t dim;
 		using elem_type = T;
+		
+		vector() : dim(0), ptr(nullptr) {}
 		
 		vector(const std::size_t d) : dim(d), ptr(new T[d]) {}
 		
 		vector(const vector<T> &other) : dim(other.dim), ptr(new T[other.dim])
 		{
 			std::memcpy(ptr, other.ptr, sizeof(T) * dim);
+		}
+		
+		template<class U>
+		explicit vector(const vector<U> &other) : dim(other.dim), ptr(new T[other.dim])
+		{
+			for (std::size_t i = 0; i < dim; ++i)
+				ptr[i] = (T)other[i];
 		}
 		
 		vector(vector<T> &&other) : dim(other.dim), ptr(other.ptr)
@@ -33,14 +42,19 @@ namespace linsys
 		
 		vector<T> &operator=(const vector<T> &other)
 		{
-			if (dim != other.dim) throw std::invalid_argument("Mismatch of dimentions.");
+			if (dim != other.dim)
+			{
+				delete[] ptr;
+				dim = other.dim;
+				ptr = new T[dim];
+			}
 			std::memcpy(ptr, other.ptr, sizeof(T) * dim);
 			return *this;
 		}
 		
 		vector<T> &operator=(vector<T> &&other)
 		{
-			if (dim != other.dim) throw std::invalid_argument("Mismatch of dimentions.");
+			dim = other.dim;
 			std::swap(ptr, other.ptr);
 			return *this;
 		}
@@ -118,7 +132,7 @@ namespace linsys
 	template<class T>
 	auto Euclidean_distance(const vector<T> &a, const vector<T> &b)
 	{
-		if (a.dim != b.dim) throw std::invalid_argument("Mismatch of dimentions.");
+		if (a.dim != b.dim) throw std::invalid_argument("Mismatch of dimensions.");
 		auto d = std::abs(a[0] - b[0]);
 		auto s = d * d;
 		for (std::size_t i = 1; i < a.dim; ++i)
@@ -136,14 +150,28 @@ namespace linsys
 		T *ptr;
 		
 	public:
-		const std::size_t dim;
+		std::size_t dim;
 		using elem_type = T;
+		
+		matrix() : dim(0), ptr(nullptr) {}
 		
 		matrix(const std::size_t d) : dim(d), ptr(new T[d * d]) {}
 		
 		matrix(const matrix<T> &other) : dim(other.dim), ptr(new T[other.dim * other.dim])
 		{
 			std::memcpy(ptr, other.ptr, sizeof(T) * dim * dim);
+		}
+		
+		template<class U>
+		explicit matrix(const matrix<U> &other) : dim(other.dim), ptr(new T[other.dim * other.dim])
+		{
+			for (std::size_t i = 0; i < dim; ++i)
+			{
+				auto row = operator[](i);
+				auto other_row = other[i];
+				for (std::size_t j = 0; j < dim; ++j)
+					row[j] = (T)other_row[j];
+			}
 		}
 		
 		matrix(matrix<T> &&other) : dim(other.dim), ptr(other.ptr)
@@ -153,14 +181,19 @@ namespace linsys
 		
 		matrix<T> &operator=(const matrix<T> &other)
 		{
-			if (dim != other.dim) throw std::invalid_argument("Mismatch of dimentions.");
+			if (dim != other.dim)
+			{
+				delete[] ptr;
+				dim = other.dim;
+				ptr = new T[dim * dim];
+			}
 			std::memcpy(ptr, other.ptr, sizeof(T) * dim * dim);
 			return *this;
 		}
 		
 		matrix<T> &operator=(matrix<T> &&other)
 		{
-			if (dim != other.dim) throw std::invalid_argument("Mismatch of dimentions.");
+			dim = other.dim;
 			std::swap(ptr, other.ptr);
 			return *this;
 		}
@@ -203,7 +236,7 @@ namespace linsys
 		
 		auto prod(const vector<T> &vect) const
 		{
-			if (dim != vect.dim) throw std::invalid_argument("Mismatch of dimentions.");
+			if (dim != vect.dim) throw std::invalid_argument("Mismatch of dimensions.");
 			vector<T> result(dim);
 			for (std::size_t i = 0; i < dim; ++i)
 			{
@@ -228,7 +261,7 @@ namespace linsys
 		
 		/*auto spec_prod(const matrix<T> &other) const
 		{
-			if (dim != other.dim) throw std::invalid_argument("Mismatch of dimentions.");
+			if (dim != other.dim) throw std::invalid_argument("Mismatch of dimensions.");
 			matrix<T> result(dim);
 			for (std::size_t i = 0; i < dim; ++i)
 			{
@@ -288,14 +321,20 @@ namespace linsys
 	template<>
 	bool iszero(const double arg)
 	{
-		return std::abs(arg) <= 2e-15;
+		return std::abs(arg) <= 1e-15;
+	}
+	
+	template<>
+	bool iszero(const float arg)
+	{
+		return std::abs(arg) <= 1e-6;
 	}
 	
 	template<class T>
 	auto Gaussian_method(matrix<T> matr, vector<T> vect)
 	{
 		const auto dim = matr.dim;
-		if (dim != vect.dim) throw std::invalid_argument("Mismatch of dimentions.");
+		if (dim != vect.dim) throw std::invalid_argument("Mismatch of dimensions.");
 		
 		for (std::size_t i = 0; i < dim; ++i)
 		{
@@ -390,7 +429,7 @@ namespace linsys
 	QR_decomposition_method_result_t<T> QR_decomposition_method(matrix<T> matr, vector<T> vect)
 	{
 		const auto dim = matr.dim;
-		if (dim != vect.dim) throw std::invalid_argument("Mismatch of dimentions.");
+		if (dim != vect.dim) throw std::invalid_argument("Mismatch of dimensions.");
 		
 		const auto qr = QR_decomposition(matr);
 		
