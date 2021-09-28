@@ -9,6 +9,24 @@
 
 namespace linsys
 {
+	template<class T>
+	bool iszero(const T arg)
+	{
+		return std::abs(arg) <= std::numeric_limits<T>::epsilon();
+	}
+	
+	template<>
+	bool iszero(const double arg)
+	{
+		return std::abs(arg) <= 1e-15;
+	}
+	
+	template<>
+	bool iszero(const float arg)
+	{
+		return std::abs(arg) <= 1e-6;
+	}
+	
 	template<class T = double>
 	class vector
 	{	
@@ -303,32 +321,75 @@ namespace linsys
 		}
 		
 		template<class distribution, class generator>
+		matrix<T> &fill_random(distribution &dis, generator &gen)
+		{
+			for (std::size_t i = 0; i < d * d; ++i)
+				result.ptr[i] = dis(gen);
+			return *this;
+		}
+		
+		template<class distribution, class generator>
 		static auto random(const std::size_t d, distribution &dis, generator &gen)
 		{
 			matrix<T> result(d);
-			for (std::size_t i = 0; i < d * d; ++i)
-				result.ptr[i] = dis(gen);
+			return result.fill_random(dis, gen);
+		}
+		
+		auto spec_QR_decomposition() const
+		{
+			std::pair<matrix<T>, matrix<T>> result;
+			result.first.fill_identity(dim);
+			result.second = *this;
+			
+			for (std::size_t i = 0; i < dim - 1; ++i)
+			{
+				auto mtop = result.second[i], qtop = result.first[i];
+				for (std::size_t j = i + 1; j < dim; ++j)
+				{
+					auto mcur = result.second[j], qcur = result.first[j];
+					if (!iszero(mcur[i]))
+					{
+						const T a = mtop[i], b = mcur[i];
+						const T h = std::hypot(a, b);
+						const T c = a / h, s = b / h;
+						
+						mtop[i] = c * mtop[i] + s * mcur[i];
+						for (std::size_t k = i + 1; k < dim; ++k)
+						{
+							const T buffer = c * mtop[k] + s * mcur[k];
+							mcur[k] = -s * mtop[k] + c * mcur[k];
+							mtop[k] = buffer;
+						}
+						
+						for (std::size_t k = 0; k < dim; ++k)
+						{
+							const T buffer = c * qtop[k] + s * qcur[k];
+							qcur[k] = -s * qtop[k] + c * qcur[k];
+							qtop[k] = buffer;
+						}
+					}
+				}
+				if (iszero(mtop[i]))
+					throw std::invalid_argument("The matrix cannot be decomposed because it is singular.");
+			}
+			if (iszero(result.second[dim - 1][dim - 1]))
+				throw std::invalid_argument("The matrix cannot be decomposed because it is singular.");
+			
 			return result;
 		}
+		
+		auto QR_decomposition() const
+		{
+			auto result = spec_QR_decomposition();
+			result.first = result.first.transpose();
+			return result;
+		}
+		
+		auto inverse() const
+		{
+			
+		}
 	};
-	
-	template<class T>
-	bool iszero(const T arg)
-	{
-		return std::abs(arg) <= std::numeric_limits<T>::epsilon();
-	}
-	
-	template<>
-	bool iszero(const double arg)
-	{
-		return std::abs(arg) <= 1e-15;
-	}
-	
-	template<>
-	bool iszero(const float arg)
-	{
-		return std::abs(arg) <= 1e-6;
-	}
 	
 	template<class T>
 	auto Gaussian_method(matrix<T> matr, vector<T> vect)
@@ -376,49 +437,6 @@ namespace linsys
 	}
 	
 	template<class T>
-	std::pair<matrix<T>, matrix<T>> QR_decomposition(matrix<T> matr)
-	{
-		const auto dim = matr.dim;
-		auto orth = matrix<T>::identity(dim);
-		
-		for (std::size_t i = 0; i < dim - 1; ++i)
-		{
-			auto mtop = matr[i], qtop = orth[i];
-			for (std::size_t j = i + 1; j < dim; ++j)
-			{
-				auto mcur = matr[j], qcur = orth[j];
-				if (!iszero(mcur[i]))
-				{
-					const T a = mtop[i], b = mcur[i];
-					const T h = std::hypot(a, b);
-					const T c = a / h, s = b / h;
-					
-					mtop[i] = c * mtop[i] + s * mcur[i];
-					for (std::size_t k = i + 1; k < dim; ++k)
-					{
-						const T buffer = c * mtop[k] + s * mcur[k];
-						mcur[k] = -s * mtop[k] + c * mcur[k];
-						mtop[k] = buffer;
-					}
-					
-					for (std::size_t k = 0; k < dim; ++k)
-					{
-						const T buffer = c * qtop[k] + s * qcur[k];
-						qcur[k] = -s * qtop[k] + c * qcur[k];
-						qtop[k] = buffer;
-					}
-				}
-			}
-			if (iszero(mtop[i]))
-				throw std::invalid_argument("The matrix cannot be decomposed because it is singular.");
-		}
-		if (iszero(matr[dim - 1][dim - 1]))
-			throw std::invalid_argument("The matrix cannot be decomposed because it is singular.");
-		
-		return { orth.transpose(), matr };
-	}
-	
-	template<class T>
 	struct QR_decomposition_method_result_t
 	{
 		matrix<T> Q, R;
@@ -431,9 +449,9 @@ namespace linsys
 		const auto dim = matr.dim;
 		if (dim != vect.dim) throw std::invalid_argument("Mismatch of dimensions.");
 		
-		const auto qr = QR_decomposition(matr);
+		const auto qr = spec_QR_decomposition(matr);
 		
-		vect = qr.first.transpose().prod(vect);
+		vect = qr.first.prod(vect);
 		
 		vector<T> solution(dim);
 		solution[dim - 1] = vect[dim - 1] / qr.second[dim - 1][dim - 1];
@@ -446,7 +464,7 @@ namespace linsys
 			solution[i] = (vect[i] - s) / row[i];
 		}
 		
-		return { qr.first, qr.second, solution };
+		return { qr.first.transpose(), qr.second, solution };
 	}
 }
 
