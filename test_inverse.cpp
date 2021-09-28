@@ -6,9 +6,12 @@ using matrix_t = linsys::matrix<>;
 
 int main(int argc, char **argv)
 {
-	matrix_t matr(3);
+	std::size_t d;
+	std::cin >> d;
 	
-	std::cin >> matr; // enter 9 numbers
+	matrix_t matr(d);
+	
+	std::cin >> matr; // enter d^2 numbers
 	// you can also try to print <matr> without <formatter>...
 	std::cout << "matr := input\nmatr -> matrix\n"
 	          << formatter(matr, std::ios::fixed | std::ios::right, 12, 6) << "end\n";

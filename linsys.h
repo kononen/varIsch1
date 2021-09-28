@@ -186,7 +186,8 @@ namespace linsys
 		{
 		private:
 			T *p;
-			row(T *new_p) : p(new_p) {}
+			const std::size_t d;
+			row(T *new_p, const std::size_t new_d) : p(new_p), d(new_d) {}
 			
 		public:
 			T &operator[](const std::size_t i) { return p[i]; }
@@ -194,15 +195,15 @@ namespace linsys
 			
 			auto to_vector() const
 			{
-				T *arr = new T[dim];
-				std::memcpy(arr, p, sizeof(T) * dim);
-				return vector<T>(arr, dim);
+				T *arr = new T[d];
+				std::memcpy(arr, p, sizeof(T) * d);
+				return vector<T>(arr, d);
 			}
 			
 			row &set(const vector<T> &v)
 			{
-				if (dim != v.dim) throw std::invalid_argument("Mismatch of dimensions.");
-				std::memcpy(p, v.get_ptr(), sizeof(T) * dim);
+				if (d != v.dim) throw std::invalid_argument("Mismatch of dimensions.");
+				std::memcpy(p, v.get_ptr(), sizeof(T) * d);
 				return *this;
 			}
 			
@@ -213,16 +214,17 @@ namespace linsys
 		{
 		private:
 			const T *p;
-			const_row(const T *new_p) : p(new_p) {}
+			const std::size_t d;
+			const_row(const T *new_p, const std::size_t new_d) : p(new_p), d(new_d) {}
 			
 		public:
 			const T &operator[](const std::size_t i) const { return p[i]; }
 			
 			auto to_vector() const
 			{
-				T *arr = new T[dim];
-				std::memcpy(arr, p, sizeof(T) * dim);
-				return vector<T>(arr, dim);
+				T *arr = new T[d];
+				std::memcpy(arr, p, sizeof(T) * d);
+				return vector<T>(arr, d);
 			}
 			
 			friend const_row matrix<T>::operator[](const std::size_t i) const;
@@ -277,9 +279,9 @@ namespace linsys
 		
 		const T *get_ptr() const { return ptr; }
 		
-		row operator[](const std::size_t i) { return row(ptr + (i * dim)); }
+		row operator[](const std::size_t i) { return row(ptr + (i * dim), dim); }
 		
-		const_row operator[](const std::size_t i) const { return const_row(ptr + (i * dim)); }
+		const_row operator[](const std::size_t i) const { return const_row(ptr + (i * dim), dim); }
 		
 		T &at(const std::size_t i, const std::size_t j)
 		{
@@ -347,10 +349,10 @@ namespace linsys
 				for (std::size_t j = 0; j < dim; ++j)
 				{
 					auto b = other[j];
-					auto e = r + j;
-					*e = a[0] * b[0];
+					auto &e = r[j];
+					e = a[0] * b[0];
 					for (std::size_t k = 1; k < dim; ++k)
-						*e += a[k] * b[k];
+						e += a[k] * b[k];
 				}
 			}
 			return result;
