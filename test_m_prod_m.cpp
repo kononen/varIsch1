@@ -1,4 +1,3 @@
-// inactivated as unnecessary; uncomment linsys.h:229 to activate
 #include <iostream>
 #include "linsys.h"
 #include "iolin.h"

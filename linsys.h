@@ -41,6 +41,9 @@ namespace linsys
 		
 		vector(const std::size_t d) : dim(d), ptr(new T[d]) {}
 		
+		// !!! DO NOT USE UNLESS ABSOLUTELY NECESSARY !!!
+		vector(T *p, const std::size_t d) : dim(d), ptr(p) {}
+		
 		vector(const vector<T> &other) : dim(other.dim), ptr(new T[other.dim])
 		{
 			std::memcpy(ptr, other.ptr, sizeof(T) * dim);
@@ -78,6 +81,8 @@ namespace linsys
 		}
 		
 		~vector() { delete[] ptr; }
+		
+		const T *get_ptr() const { return ptr; }
 		
 		T &operator[](const std::size_t i) { return ptr[i]; }
 		
@@ -138,12 +143,18 @@ namespace linsys
 		}
 		
 		template<class distribution, class generator>
+		vector<T> &fill_random(distribution &dis, generator &gen)
+		{
+			for (std::size_t i = 0; i < dim; ++i)
+				ptr[i] = dis(gen);
+			return *this;
+		}
+		
+		template<class distribution, class generator>
 		static auto random(const std::size_t d, distribution &dis, generator &gen)
 		{
 			vector<T> result(d);
-			for (std::size_t i = 0; i < d; ++i)
-				result[i] = dis(gen);
-			return result;
+			return result.fill_random(dis, gen);
 		}
 	};
 	
@@ -170,6 +181,52 @@ namespace linsys
 	public:
 		std::size_t dim;
 		using elem_type = T;
+		
+		class row
+		{
+		private:
+			T *p;
+			row(T *new_p) : p(new_p) {}
+			
+		public:
+			T &operator[](const std::size_t i) { return p[i]; }
+			const T &operator[](const std::size_t i) const { return p[i]; }
+			
+			auto to_vector() const
+			{
+				T *arr = new T[dim];
+				std::memcpy(arr, p, sizeof(T) * dim);
+				return vector<T>(arr, dim);
+			}
+			
+			row &set(const vector<T> &v)
+			{
+				if (dim != v.dim) throw std::invalid_argument("Mismatch of dimensions.");
+				std::memcpy(p, v.get_ptr(), sizeof(T) * dim);
+				return *this;
+			}
+			
+			friend row matrix<T>::operator[](const std::size_t i);
+		};
+		
+		class const_row
+		{
+		private:
+			const T *p;
+			const_row(const T *new_p) : p(new_p) {}
+			
+		public:
+			const T &operator[](const std::size_t i) const { return p[i]; }
+			
+			auto to_vector() const
+			{
+				T *arr = new T[dim];
+				std::memcpy(arr, p, sizeof(T) * dim);
+				return vector<T>(arr, dim);
+			}
+			
+			friend const_row matrix<T>::operator[](const std::size_t i) const;
+		};
 		
 		matrix() : dim(0), ptr(nullptr) {}
 		
@@ -218,9 +275,11 @@ namespace linsys
 		
 		~matrix() { delete[] ptr; }
 		
-		T *operator[](const std::size_t i) { return ptr + (i * dim); }
+		const T *get_ptr() const { return ptr; }
 		
-		const T *operator[](const std::size_t i) const { return ptr + (i * dim); }
+		row operator[](const std::size_t i) { return row(ptr + (i * dim)); }
+		
+		const_row operator[](const std::size_t i) const { return const_row(ptr + (i * dim)); }
 		
 		T &at(const std::size_t i, const std::size_t j)
 		{
@@ -277,7 +336,7 @@ namespace linsys
 			return result;
 		}
 		
-		/*auto spec_prod(const matrix<T> &other) const
+		auto spec_prod(const matrix<T> &other) const
 		{
 			if (dim != other.dim) throw std::invalid_argument("Mismatch of dimensions.");
 			matrix<T> result(dim);
@@ -300,7 +359,7 @@ namespace linsys
 		auto operator*(const matrix<T> &other) const
 		{
 			return spec_prod(other.transpose());
-		}//*/
+		}
 		
 		matrix<T> &fill_identity()
 		{
@@ -323,8 +382,8 @@ namespace linsys
 		template<class distribution, class generator>
 		matrix<T> &fill_random(distribution &dis, generator &gen)
 		{
-			for (std::size_t i = 0; i < d * d; ++i)
-				result.ptr[i] = dis(gen);
+			for (std::size_t i = 0; i < dim * dim; ++i)
+				ptr[i] = dis(gen);
 			return *this;
 		}
 		
@@ -335,10 +394,27 @@ namespace linsys
 			return result.fill_random(dis, gen);
 		}
 		
+		auto back_substitution(const vector<T> &vect) const
+		{
+			if (dim != vect.dim) throw std::invalid_argument("Mismatch of dimensions.");
+			
+			vector<T> result(dim);
+			result[dim - 1] = vect[dim - 1] / operator[](dim - 1)[dim - 1];
+			for (std::size_t i = dim - 2; i < i + 1; --i)
+			{
+				auto row = operator[](i);
+				auto s = row[i + 1] * result[i + 1];
+				for (std::size_t j = i + 2; j < dim; ++j)
+					s += row[j] * result[j];
+				result[i] = (vect[i] - s) / row[i];
+			}
+			return result;
+		}
+		
 		auto spec_QR_decomposition() const
 		{
 			std::pair<matrix<T>, matrix<T>> result;
-			result.first.fill_identity(dim);
+			result.first = identity(dim);
 			result.second = *this;
 			
 			for (std::size_t i = 0; i < dim - 1; ++i)
@@ -387,7 +463,11 @@ namespace linsys
 		
 		auto inverse() const
 		{
-			
+			auto qr = QR_decomposition();
+			matrix<T> result(dim);
+			for (std::size_t i = 0; i < dim; ++i)
+				result[i].set(qr.second.back_substitution(qr.first[i].to_vector()));
+			return result.transpose();
 		}
 	};
 	
@@ -423,17 +503,7 @@ namespace linsys
 			}
 		}
 		
-		vector<T> result(dim);
-		result[dim - 1] = vect[dim - 1] / matr[dim - 1][dim - 1];
-		for (std::size_t i = dim - 2; i < i + 1; --i)
-		{
-			auto row = matr[i];
-			auto s = row[i + 1] * result[i + 1];
-			for (std::size_t j = i + 2; j < dim; ++j)
-				s += row[j] * result[j];
-			result[i] = (vect[i] - s) / row[i];
-		}
-		return result;
+		return matr.back_substitution(vect);
 	}
 	
 	template<class T>
@@ -449,22 +519,11 @@ namespace linsys
 		const auto dim = matr.dim;
 		if (dim != vect.dim) throw std::invalid_argument("Mismatch of dimensions.");
 		
-		const auto qr = spec_QR_decomposition(matr);
+		const auto qr = matr.spec_QR_decomposition();
 		
 		vect = qr.first.prod(vect);
 		
-		vector<T> solution(dim);
-		solution[dim - 1] = vect[dim - 1] / qr.second[dim - 1][dim - 1];
-		for (std::size_t i = dim - 2; i < i + 1; --i)
-		{
-			auto row = qr.second[i];
-			auto s = row[i + 1] * solution[i + 1];
-			for (std::size_t j = i + 2; j < dim; ++j)
-				s += row[j] * solution[j];
-			solution[i] = (vect[i] - s) / row[i];
-		}
-		
-		return { qr.first.transpose(), qr.second, solution };
+		return { qr.first.transpose(), qr.second, qr.second.back_substitution(vect) };
 	}
 }
 
