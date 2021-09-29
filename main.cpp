@@ -237,9 +237,9 @@ int main(int argc, char **argv)
 		std::cout << "Residual: "
 		          << Euclidean_distance(((matrix64)A32).prod((vector64)qrx.X), (vector64)b32) << "\n\n";
 		
-		std::cout << "Q: matrix\n" << formatter(qrx.Q, std::ios::fixed | std::ios::right, 12, 6) << "end\n\n";
+		/*std::cout << "Q: matrix\n" << formatter(qrx.Q, std::ios::fixed | std::ios::right, 12, 6) << "end\n\n";
 		std::cout << "R: matrix\n"
-		          << formatter(qrx.R, std::ios::fixed | std::ios::right, 12, 6, UPPER_TRIANGULAR) << "end\n\n";
+		          << formatter(qrx.R, std::ios::fixed | std::ios::right, 12, 6, UPPER_TRIANGULAR) << "end\n\n";//*/
 		
 		std::cout << "Save matrix Q in a file: ";
 		std::getline(std::cin, address);
@@ -279,9 +279,9 @@ int main(int argc, char **argv)
 		std::cout.precision(p);
 		std::cout << "Residual: " << Euclidean_distance(A64.prod(qrx.X), b64) << "\n\n";
 		
-		std::cout << "Q: matrix\n" << formatter(qrx.Q, std::ios::fixed | std::ios::right, 12, 6) << "end\n\n";
+		/*std::cout << "Q: matrix\n" << formatter(qrx.Q, std::ios::fixed | std::ios::right, 12, 6) << "end\n\n";
 		std::cout << "R: matrix\n"
-		          << formatter(qrx.R, std::ios::fixed | std::ios::right, 12, 6, UPPER_TRIANGULAR) << "end\n\n";
+		          << formatter(qrx.R, std::ios::fixed | std::ios::right, 12, 6, UPPER_TRIANGULAR) << "end\n\n";//*/
 		
 		std::cout << "Save matrix Q in a file: ";
 		std::getline(std::cin, address);
@@ -302,6 +302,37 @@ int main(int argc, char **argv)
 		save.close();
 	}
 	catch (std::invalid_argument exc)
+	{
+		std::cout << "[EXCEPTION] " << exc.what() << "\n";
+	}
+	
+	try
+	{
+		std::cout << "\nTrying to estimate the condition number of the matrix with single precision...\n";
+		std::cout << "Estimation: no less than " << estimate_cond(A32, b32, 10) << "\n";
+		
+		std::cout << "\nTrying to estimate the condition number of the matrix with double precision...\n";
+		std::cout << "Estimation: no less than " << estimate_cond(A64, b64, 10) << "\n";
+	}
+	catch(std::invalid_argument exc)
+	{
+		std::cout << "[EXCEPTION] " << exc.what() << "\n";
+	}
+	
+	try
+	{
+		std::cout << "\nTrying to calculate the condition number of the matrix by the definition...\n";
+		
+		std::cout << "Result: " << std::setw(16) << std::setprecision(10)
+		          << A32.cond_oct() << " (oct. norm, single precision)\n";
+		std::cout << "Result: " << std::setw(16) << std::setprecision(10)
+		          << A64.cond_oct() << " (oct. norm, double precision)\n";
+		std::cout << "Result: " << std::setw(16) << std::setprecision(10)
+		          << A32.cond_cub() << " (cub. norm, single precision)\n";
+		std::cout << "Result: " << std::setw(16) << std::setprecision(10)
+		          << A64.cond_cub() << " (cub. norm, double precision)\n";
+	}
+	catch(std::invalid_argument exc)
 	{
 		std::cout << "[EXCEPTION] " << exc.what() << "\n";
 	}

@@ -156,6 +156,14 @@ namespace linsys
 			vector<T> result(d);
 			return result.fill_random(dis, gen);
 		}
+		
+		auto perturbation() const
+		{
+			auto result = *this;
+			for (std::size_t i = 0; i < dim; ++i)
+				result[i] += (rand() & 1 ? 1 : -1) * 0.01;
+			return result;
+		}
 	};
 	
 	template<class T>
@@ -363,6 +371,44 @@ namespace linsys
 			return spec_prod(other.transpose());
 		}
 		
+		auto oct_norm() const
+		{
+			auto s = std::abs(operator[](0)[0]);
+			for (std::size_t i = 1; i < dim; ++i)
+				s += std::abs(operator[](i)[0]);
+			auto result = s;
+			
+			for (std::size_t i = 1; i < dim; ++i)
+			{
+				s = std::abs(operator[](0)[i]);
+				for (std::size_t j = 1; j < dim; ++j)
+					s += std::abs(operator[](j)[i]);
+				if (s > result) result = s;
+			}
+			
+			return result;
+		}
+		
+		auto cub_norm() const
+		{
+			auto row = operator[](0);
+			auto s = std::abs(row[0]);
+			for (std::size_t i = 1; i < dim; ++i)
+				s += std::abs(row[i]);
+			auto result = s;
+			
+			for (std::size_t i = 1; i < dim; ++i)
+			{
+				auto row = operator[](i);
+				s = std::abs(row[0]);
+				for (std::size_t j = 1; j < dim; ++j)
+					s += std::abs(row[j]);
+				if (s > result) result = s;
+			}
+			
+			return result;
+		}
+		
 		matrix<T> &fill_identity()
 		{
 			for (std::size_t i = 0; i < dim; ++i)
@@ -471,6 +517,16 @@ namespace linsys
 				result[i].set(qr.second.back_substitution(qr.first[i].to_vector()));
 			return result.transpose();
 		}
+		
+		auto cond_oct() const
+		{
+			return oct_norm() * inverse().oct_norm();
+		}
+		
+		auto cond_cub() const
+		{
+			return cub_norm() * inverse().cub_norm();
+		}
 	};
 	
 	template<class T>
@@ -526,6 +582,29 @@ namespace linsys
 		vect = qr.first.prod(vect);
 		
 		return { qr.first.transpose(), qr.second, qr.second.back_substitution(vect) };
+	}
+	
+	template<class T>
+	auto estimate_cond(const matrix<T> &A, const vector<T> &b, const std::size_t n)
+	{
+		auto x = Gaussian_method(A, b);
+		
+		auto bp = b.perturbation();
+		auto xp = Gaussian_method(A, bp);
+		auto db = Euclidean_distance(bp, b) / b.sph_norm();
+		auto dx = Euclidean_distance(xp, x) / x.sph_norm();
+		auto result = dx / db;
+		
+		for (std::size_t i = 1; i < n; ++i)
+		{
+			bp = b.perturbation();
+			xp = Gaussian_method(A, bp);
+			db = Euclidean_distance(bp, b) / b.sph_norm();
+			dx = Euclidean_distance(xp, x) / x.sph_norm();
+			if (dx / db > result) result = dx / db;
+		}
+		
+		return result;
 	}
 }
 
